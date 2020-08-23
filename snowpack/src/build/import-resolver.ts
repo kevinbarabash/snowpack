@@ -71,6 +71,9 @@ export function createImportResolver({
       }
       return result;
     }
+    if (aliasEntry && aliasEntry.type === 'package') {
+      spec = aliasEntry.to;
+    }
     if (dependencyImportMap) {
       // NOTE: We don't need special handling for an alias here, since the aliased "from"
       // is already the key in the import map. The aliased "to" value is also an entry.

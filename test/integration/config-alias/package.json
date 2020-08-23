@@ -9,7 +9,8 @@
   "snowpack": {
     "alias": {
       "react": "preact/compat",
-      "react-dom": "preact/compat"
+      "react-dom": "preact/compat",
+      "foo": "./src/foo.js"
     },
     "install": [
       "react",

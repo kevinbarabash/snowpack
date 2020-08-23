@@ -258,7 +258,7 @@ export async function install(
   const assetEntrypoints: {[targetName: string]: string} = {};
   const importMap: ImportMap = {imports: {}};
   const installTargetsMap: {[targetLoc: string]: InstallTarget[]} = {};
-  const skipFailures = false;
+  const skipFailures = true;
   const autoDetectNamedExports = [
     ...CJS_PACKAGES_TO_AUTO_DETECT,
     ...config.installOptions.namedExports,
@@ -400,15 +400,42 @@ ${colors.dim(
   };
   if (Object.keys(installEntrypoints).length > 0) {
     try {
-      const packageBundle = await rollup(inputOptions);
-      logger.debug(
-        `installing npm packages:\n    ${Object.keys(installEntrypoints).join('\n    ')}`,
-      );
-      if (isFatalWarningFound) {
-        throw new Error(FAILED_INSTALL_MESSAGE);
+      Error.stackTraceLimit = Infinity;
+
+      // const packageBundle = await rollup({
+      //   ...inputOptions,
+      //   external: ['jquery'],
+      // });
+      // logger.debug(
+      //   `installing npm packages:\n    ${Object.keys(installEntrypoints).join('\n    ')}`,
+      // );
+      // if (isFatalWarningFound) {
+      //   throw new Error(FAILED_INSTALL_MESSAGE);
+      // }
+      // await packageBundle.write(outputOptions);
+  
+      const input = inputOptions.input;
+      // TODO: properly type check input
+      // @ts-ignore
+      for (const [key, value] of Object.entries(input)) {
+        const singleInputOptions = {
+          ...inputOptions,
+          input: {
+            [key]: value,
+          },
+          external: ['jquery'],
+        };
+        logger.debug(`compiling ${key}`);
+        // console.log(JSON.stringify(singleInputOptions, null, 4));
+        const packageBundle = await rollup(singleInputOptions);
+        if (isFatalWarningFound) {
+          throw new Error(FAILED_INSTALL_MESSAGE);
+        }
+        logger.debug(`installing ${key}`);
+        await packageBundle.write(outputOptions);
       }
-      await packageBundle.write(outputOptions);
     } catch (_err) {
+      console.log(_err.stack);
       const err: RollupError = _err;
       const errFilePath = err.loc?.file || err.id;
       if (!errFilePath) {
@@ -505,7 +532,7 @@ export async function run({
 
   // start
   const installStart = performance.now();
-  logger.info(colors.yellow('! installing dependencies…'));
+  logger.info(colors.yellow('! installing dependencies…!!'));
 
   installResults = [];
   dependencyStats = null;
@@ -529,6 +556,7 @@ export async function run({
   }
 
   rimraf.sync(dest);
+  logger.info("calling install");
   const finalResult = await install(installTargets, {
     lockfile: newLockfile,
     config,

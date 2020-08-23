@@ -504,8 +504,12 @@ function normalizeAlias(config: SnowpackConfig, createMountAlias: boolean) {
       replacement.startsWith('../') ||
       replacement.startsWith('/')
     ) {
-      delete cleanAlias[target];
-      cleanAlias[addTrailingSlash(target)] = addTrailingSlash(path.resolve(cwd, replacement));
+      const replacementPath = path.resolve(cwd, replacement);
+      const stat = fs.lstatSync(replacementPath);
+      if (stat.isDirectory()) {
+        delete cleanAlias[target];
+        cleanAlias[addTrailingSlash(target)] = addTrailingSlash(replacementPath);
+      }
     }
   }
   return cleanAlias;

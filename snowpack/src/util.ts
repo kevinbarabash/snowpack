@@ -284,7 +284,7 @@ export function findMatchingAliasEntry(
  * For the given import specifier, return an alias entry if one is matched.
  */
 export function isPackageAliasEntry(val: string): boolean {
-  return !path.isAbsolute(val);
+  return !val.startsWith(".") && !val.startsWith("/");
 }
 
 /** Get full extensions of files */

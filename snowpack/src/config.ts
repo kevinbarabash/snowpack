@@ -8,6 +8,7 @@ import {validate, ValidatorResult} from 'jsonschema';
 import os from 'os';
 import path from 'path';
 import yargs from 'yargs-parser';
+import fs from 'fs';
 
 import {defaultFileExtensionMapping} from './build/file-urls';
 import {logger} from './logger';
@@ -593,8 +594,13 @@ function normalizeAlias(config: SnowpackConfig, cwd: string, createMountAlias: b
       replacement.startsWith('../') ||
       replacement.startsWith('/')
     ) {
-      delete cleanAlias[target];
-      cleanAlias[removeTrailingSlash(target)] = addTrailingSlash(path.resolve(cwd, replacement));
+      const replacementPath = path.resolve(cwd, replacement);
+      const stat = fs.lstatSync(replacementPath);
+
+      if (stat.isDirectory()) {
+        delete cleanAlias[target];
+        cleanAlias[removeTrailingSlash(target)] = addTrailingSlash(replacementPath);
+      }
     }
   }
   return cleanAlias;

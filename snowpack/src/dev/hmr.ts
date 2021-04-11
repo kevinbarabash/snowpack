@@ -21,14 +21,14 @@ export function startHmrEngine(
   });
 
   // Live Reload + File System Watching
-  function updateOrBubble(url: string, visited: Set<string>) {
+  function updateOrBubble(url: string, visited: Set<string>, mtime: number) {
     if (visited.has(url)) {
       return;
     }
     const node = hmrEngine.getEntry(url);
     const isBubbled = visited.size > 0;
     if (node && node.isHmrEnabled) {
-      hmrEngine.broadcastMessage({type: 'update', url, bubbled: isBubbled});
+      hmrEngine.broadcastMessage({type: 'update', url, bubbled: isBubbled, mtime});
     }
     visited.add(url);
     if (node && node.isHmrAccepted) {
@@ -36,7 +36,7 @@ export function startHmrEngine(
     } else if (node && node.dependents.size > 0) {
       node.dependents.forEach((dep) => {
         hmrEngine.markEntryForReplacement(node, true);
-        updateOrBubble(dep, visited);
+        updateOrBubble(dep, visited, mtime);
       });
     } else {
       // We've reached the top, trigger a full page refresh
@@ -45,10 +45,11 @@ export function startHmrEngine(
   }
 
   function handleHmrUpdate(fileLoc: string, originalUrl: string) {
+    const mtime = Date.now();
     // CSS files may be loaded directly in the client (not via JS import / .proxy.js)
     // so send an "update" event to live update if thats the case.
     if (hasExtension(originalUrl, '.css') && !hasExtension(originalUrl, '.module.css')) {
-      hmrEngine.broadcastMessage({type: 'update', url: originalUrl, bubbled: false});
+      hmrEngine.broadcastMessage({type: 'update', url: originalUrl, bubbled: false, mtime});
     }
 
     // Append ".proxy.js" to Non-JS files to match their registered URL in the
@@ -73,7 +74,7 @@ export function startHmrEngine(
 
     // If the changed file exists on the page, trigger a new HMR update.
     if (hmrEngine.getEntry(updatedUrl)) {
-      updateOrBubble(updatedUrl, new Set());
+      updateOrBubble(updatedUrl, new Set(), mtime);
       return;
     }
 
